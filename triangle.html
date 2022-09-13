@@ -18,37 +18,47 @@
  */
 function rasterize_triangle( va, vb, vc, emit_fragment ) {
 	//TODO: fill in this function
-
-	//This is a very bad placeholder implementation, just here so you see something by default.
-	//Don't actually do this!
-	//A good solution will loop over exactly the pixels that the triangle covers.
-	
-	//draw equally-spaced fragments in barycentric space:
-	for (let ai = 0; ai <= 5; ++ai) {
-		for (let bi = 0; bi + ai <= 5; ++bi) {
-			let ci = 5 - ai - bi;
-
-			//from integer barycentric coords to floating-point:
-			let a = ai / 5.0;
-			let b = bi / 5.0;
-			let c = ci / 5.0;
-
-			//interpolate to get point in triangle:
-			const pt = {
-				x:a * va.x + b * vb.x + c * vc.x,
-				y:a * va.y + b * vb.y + c * vc.y
-			};
-
-			//px is the pixel containing pt:
-			const px = {
-				x:Math.floor(pt.x),
-				y:Math.floor(pt.y)
-			};
-
-			emit_fragment(px.x+0.5, px.y+0.5);
+	// loop over all points in subsection of plane (box circumscribing circle)
+	const min_x = Math.floor(Math.min(va.x, vb.x, vc.x))
+	const min_y = Math.floor(Math.min(va.y, vb.y, vc.y))
+	const max_x = Math.ceil(Math.max(va.x, vb.x, vc.x))
+	const max_y = Math.ceil(Math.max(va.y, vb.y, vc.y))
+	for (let ix = min_x; ix < max_x; ++ix) {
+		for (let iy = min_y; iy < max_y; ++iy) {
+			// check if point (ix, iy) is within 3 lines of edge of triangle
+			const pt = {x: ix + 0.5, y: iy + 0.5}
+			if (pointInTriangle(pt, va, vb, vc)) {
+				emit_fragment(pt.x, pt.y)
+			}
 		}
 	}
 }
+
+// Finds if point v is within triangle by comparing areas
+function pointInTriangle (v, p1, p2, p3) {
+	const ATotal = triangleArea(p1, p2, p3)
+	const A1 = triangleArea(v, p1, p2)
+	const A2 = triangleArea(v, p2, p3)
+	const A3 = triangleArea(v, p1, p3)
+
+	return almostEqual(ATotal, A1 + A2 + A3)
+}
+
+// Finds triangle area via unsigned determinant method
+// Courtesy of Quora comment by Alexander Farrugia on quora.com/What-is-the-signed-Area-of-the-triangle
+function triangleArea (p1, p2, p3) {
+	return Math.abs(p1.x * p2.y + p2.x * p3.y + p3.x * p1.y - p2.x * p1.y - p3.x * p2.y - p1.x * p3.y)
+}
+
+// Check if two float values are *almost* equal due to float rounding
+function almostEqual(x, y) {
+	const epsilon = Math.abs(x - y)
+	if (epsilon <= 10e-10) {
+		return true
+	}
+	return false
+}
+
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

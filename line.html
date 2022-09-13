@@ -16,30 +16,88 @@
 * box, i.e., (x+0.5,y)-(x+1,y+0.5)-(x+0.5,y+1)-(x,y+0.5) .
 *
 */
+// Pseudocode for Bresenham's line algorithm found at wikipedia.org/wiki/Bresenham%27s_line_algorithm
 function rasterize_line( va, vb, emit_fragment ) {
 	//TODO: fill in this function
+	// Draw first fragment if it lies within the diamond
+	// Diamond formula provided by open GL section 3.5.1
+	const centerx = Math.floor(va.x) + 0.5
+	const centery = Math.floor(va.y) + 0.5
+	const diamond = Math.abs(va.x - centerx) + Math.abs(va.y - centery) <= 1/2
+	if (diamond) { emit_fragment(centerx, centery) }
 
-	//This is a very bad placeholder implementation, just here so you see something by default.
-	//Don't actually do this.
-	
-	//draw equally-spaced fragments along the line:
-	for (let i = 0; i <= 5; ++i) {
-		//amount to interpolate
-		const amt = i / 5.0;
-		//pt is linearly interpolated between va and vb:
-		const pt = {
-			x:(vb.x - va.x) * amt + va.x,
-			y:(vb.y - va.y) * amt + va.y
-		};
-		//px is the pixel containing pt:
-		const px = {
-			x:Math.floor(pt.x),
-			y:Math.floor(pt.y)
-		};
-		//emit fragment at px (+0.5 because emit_fragment wants pixel center)
-		emit_fragment(px.x+0.5, px.y+0.5);
+	// Draw rest of the fragments
+	if (Math.abs(vb.y - va.y) < Math.abs(vb.x - va.x)) {
+		// Check slope
+		if (va.x > vb.x) {
+			// Flips endpoints so we're always goinging left -> right
+			console.log("draw1")
+			BresenhamLow(vb.x, vb.y, va.x, va.y, emit_fragment)
+		} else {
+			console.log("draw2")
+			BresenhamLow(va.x, va.y, vb.x, vb.y, emit_fragment)
+		}
+	} else {
+		if (va.y > vb.y) {
+			console.log("draw3")
+			BresenhamHigh(vb.x, vb.y, va.x, va.y, emit_fragment)
+		} else {
+			console.log("draw4")
+			BresenhamHigh(va.x, va.y, vb.x, vb.y, emit_fragment)
+		}
 	}
 }
+
+function BresenhamLow(x0, y0, x1, y1, emit_fragment) {
+	let dx = x1 - x0
+	let dy = y1 - y0
+	let yi = 1
+	if (dy < 0) {
+		// line slopes downward
+		yi = -1
+		dy = -dy
+	}
+	let D = dy - dx / 2
+	let y = Math.floor(y0)
+
+	for (let x = Math.floor(x0); x + 1 < x1; ++x) {
+		if (x != Math.floor(x0)) {
+			emit_fragment(x + 0.5, y + 0.5) // skip first and last segments
+		}
+		if (D > 0) {
+			y += yi
+			D += dy - dx
+		} else {
+			D += dy
+		}
+	}
+}
+
+function BresenhamHigh(x0, y0, x1, y1, emit_fragment) {
+	let dx = x1 - x0
+	let dy = y1 - y0
+	let xi = 1
+	if (dx < 0) {
+		// line slopes downward
+		xi = -1
+		dx = -dx
+	}
+	let D = dx - dy / 2
+	let x = Math.floor(x0)
+
+	for (let y = Math.floor(y0); y + 1 < y1; ++y) {
+		if (y != Math.floor(y0)) {
+			emit_fragment(x + 0.5, y + 0.5) // skip first and last segments
+		}
+		if (D > 0) {
+			x += xi
+			D += dx - dy
+		} else {
+			D += dx
+		}
+	}
+}
+
 </script>
 <style>
 html, body, h1, h2, p { padding: 0; margin: 0; }
